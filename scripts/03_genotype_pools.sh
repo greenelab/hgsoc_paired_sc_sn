@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #SBATCH --array=1-6
 #SBATCH --job-name=pool_genotyping
@@ -28,19 +28,35 @@ mkdir -p "$OUTPUT_DIR"
 echo "cellSNP-lite output saving to: $OUTPUT_DIR"
 
 ##########################################################################################################
-# Ensure SNP reference has "chr" prefixes to match BAMs
+# Ensure SNP reference has "chr" prefixes and is sorted/indexed
 ##########################################################################################################
 
 FIXED_REF_SNPS="/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.hg38.chr.vcf.gz"
 
 if [ ! -f "$FIXED_REF_SNPS" ]; then
     echo "Creating hg38-compatible SNP reference with chr prefixes..."
-    bcftools annotate \
-        --rename-chrs <(awk '{print $1"\tchr"$1}' <(seq 1 22; echo X; echo Y; echo MT)) \
-        -Oz -o "$FIXED_REF_SNPS" \
+
+    TEMP_VCF=$(mktemp --suffix=.vcf.gz)
+    MAP_FILE=$(mktemp)
+
+    # create chr mapping
+    for CHR in $(seq 1 22) X Y MT; do
+        echo -e "$CHR\tchr$CHR"
+    done > "$MAP_FILE"
+
+    # rename chromosomes
+    bcftools annotate --rename-chrs "$MAP_FILE" \
+        -Oz -o "$TEMP_VCF" \
         "/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz" \
-    && tabix -p vcf "$FIXED_REF_SNPS" \
-    || { echo "Error: failed to create $FIXED_REF_SNPS"; exit 1; }
+        || { echo "Error: bcftools annotate failed"; exit 1; }
+
+    # sort VCF
+    bcftools sort -Oz -o "$FIXED_REF_SNPS" "$TEMP_VCF"
+
+    # index
+    tabix -p vcf "$FIXED_REF_SNPS"
+
+    rm "$TEMP_VCF" "$MAP_FILE"
 else
     echo "Found existing hg38-compatible SNP reference: $FIXED_REF_SNPS"
 fi
@@ -111,8 +127,8 @@ cellsnp-lite \
     -b "$BARCODE_FILE" \
     -R "$REF_SNPS" \
     -p 20 \
-    --minMAF 0.05 \
-    --minCOUNT 1 \
+    --minMAF 0.1 \
+    --minCOUNT 20 \
     --gzip \
     --cellTAG CB \
     --UMItag UB \

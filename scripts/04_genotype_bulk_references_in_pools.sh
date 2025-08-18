@@ -75,8 +75,8 @@ for bam in $BAMS; do
                 -p 10 \
                 --cellTAG None \
                 --UMItag None \
-                --minMAF 0.05 \
-                --minCOUNT 1 \
+                --minMAF 0.1 \
+                --minCOUNT 20 \
                 --gzip \
                 --genotype \
                 --sampleIDs "$SAMPLE_ID"
