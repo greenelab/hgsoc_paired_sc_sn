@@ -25,7 +25,7 @@ set -euo pipefail
 BASE_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_pools"
 
 # Reference directory where the genotypes of the reference bulks in pools are located
-REF_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_bulk_references_in_pools"
+REF_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_bulk_references"
 
 # Set output dir
 VIREO_OUT_DIR="/scratch/alpine/$USER/vireo_genetic_demultiplexing_output"
