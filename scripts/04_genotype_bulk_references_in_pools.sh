@@ -21,7 +21,7 @@ set -euo pipefail
 ##########################################################################################################
 PROJ_DIR="${SLURM_SUBMIT_DIR}"
 ALIGNMENT_DIR="/scratch/alpine/$USER/star_alignment_output/26384R"
-OUTPUT_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_bulk_references_per_sample"
+OUTPUT_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_bulk_references"
 mkdir -p "$OUTPUT_DIR"
 REF_SNPS="/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
 
@@ -64,21 +64,29 @@ for bam in $BAMS; do
         if [ ! -f "${FULL_BAM}.bai" ]; then
             echo "BAM index not found for $FULL_BAM, indexing now..."
             samtools index "$FULL_BAM"
-        fi
-
-        echo "Running cellSNP-lite for $FULL_BAM -> $SAMPLE_OUT"
-
-        cellsnp-lite \
-            -s "$FULL_BAM" \
-            -O "$SAMPLE_OUT" \
-            -R "$REF_SNPS" \
-            -p 10 \
-            --cellTAG None \
-            --UMItag None \
-            --minMAF 0.05 \
-            --minCOUNT 1 \
-            --gzip \
-            --genotype
+    fi
+    
+    echo "Running cellSNP-lite for $FULL_BAM -> $SAMPLE_OUT"
+    
+    cellsnp-lite \
+                -s "$FULL_BAM" \
+                -O "$SAMPLE_OUT" \
+                -R "$REF_SNPS" \
+                -p 10 \
+                --cellTAG None \
+                --UMItag None \
+                --minMAF 0.05 \
+                --minCOUNT 1 \
+                --gzip \
+                --genotype \
+                --sampleIDs "$SAMPLE_ID"
+    fi
+    
+    # Ensure the VCF is indexed
+    if [ ! -f "${SAMPLE_VCF}.csi" ] && [ ! -f "${SAMPLE_VCF}.tbi" ]; then
+        echo "Sorting and indexing VCF for $SAMPLE_ID ..."
+        bcftools sort -Oz -o "$SAMPLE_VCF" "$SAMPLE_VCF"
+        bcftools index "$SAMPLE_VCF"
     fi
 
     # Add sample VCF to merge list
