@@ -76,7 +76,7 @@ fi
 
 vireo \
   --cellData="$POOL_DIR" \
-  --donorFile="${REF_DIR}/${POOL_NAME}_donor_ref_vcf.gz" \
+  --donorFile="${REF_DIR}/${POOL_NAME}_donor_ref.vcf.gz" \
   --nDonor="$N_DONOR" \
   --outDir="$VIREO_OUT_DIR_POOL"
 

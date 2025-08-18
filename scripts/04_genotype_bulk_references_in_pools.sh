@@ -23,7 +23,7 @@ PROJ_DIR="${SLURM_SUBMIT_DIR}"
 ALIGNMENT_DIR="/scratch/alpine/$USER/star_alignment_output/26384R"
 OUTPUT_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_bulk_references"
 mkdir -p "$OUTPUT_DIR"
-REF_SNPS="/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
+REF_SNPS="/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.hg38.chr.vcf.gz"
 
 ##########################################################################################################
 # Define pools and bulk BAMs

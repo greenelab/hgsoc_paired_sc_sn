@@ -28,6 +28,26 @@ mkdir -p "$OUTPUT_DIR"
 echo "cellSNP-lite output saving to: $OUTPUT_DIR"
 
 ##########################################################################################################
+# Ensure SNP reference has "chr" prefixes to match BAMs
+##########################################################################################################
+
+FIXED_REF_SNPS="/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.hg38.chr.vcf.gz"
+
+if [ ! -f "$FIXED_REF_SNPS" ]; then
+    echo "Creating hg38-compatible SNP reference with chr prefixes..."
+    bcftools annotate \
+        --rename-chrs <(awk '{print $1"\tchr"$1}' <(seq 1 22; echo X; echo Y; echo MT)) \
+        -Oz -o "$FIXED_REF_SNPS" \
+        "/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz" \
+    && tabix -p vcf "$FIXED_REF_SNPS" \
+    || { echo "Error: failed to create $FIXED_REF_SNPS"; exit 1; }
+else
+    echo "Found existing hg38-compatible SNP reference: $FIXED_REF_SNPS"
+fi
+
+REF_SNPS="$FIXED_REF_SNPS"
+
+##########################################################################################################
 # Gather all BAMs into array
 ##########################################################################################################
 
@@ -48,7 +68,6 @@ EXPERIMENT_ID=$(basename "$(dirname "$BAM_FILE")")
 POOL_BAM=$(basename "$BAM_FILE")                                 
 POOL_ID=${POOL_BAM%%_*}
 EXPERIMENT_POOL_ID="${EXPERIMENT_ID}_${POOL_ID}"
-REF_SNPS="/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
 
 POOL_OUTPUT_DIR="$OUTPUT_DIR/$EXPERIMENT_POOL_ID"
 mkdir -p "$POOL_OUTPUT_DIR"
