@@ -5,10 +5,10 @@
 #SBATCH --account=amc-general
 #SBATCH --output=output_bulk_ref_in_pools_%A_%a.log
 #SBATCH --error=error_bulk_ref_in_pools_%A_%a.log
-#SBATCH --time=09:00:00
+#SBATCH --time=06:00:00
 #SBATCH --partition=amilan
 #SBATCH --qos=normal
-#SBATCH --mem=16G
+#SBATCH --mem=6G
 #SBATCH --ntasks=10
 #SBATCH --nodes=1
 #SBATCH --mail-user=grace.akatsu@cuanschutz.edu
