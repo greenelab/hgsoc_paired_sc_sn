@@ -1,4 +1,4 @@
-# Analysis of paired single cel, single nucleus, and bulk RNA-seq data from HGSOC human samples
+# Analysis of paired single cell, single nucleus, and bulk RNA-seq data from HGSOC human samples
 ## Scripts:
 ### **01_preprocess_data.sh**
 This script uses fastp to run QC on sequencing quality.
@@ -14,4 +14,4 @@ This script uses vireo to genetically demultiplex the pooled single cell and sin
 ## Reference data:
 ### Reference genome:
 https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2024-A.tar.gz
-Unzip the reference genome files and place in directory reference_data
+Unzip the reference genome files and place in directory reference_data, on the same level as directory scripts
