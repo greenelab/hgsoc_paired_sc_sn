@@ -5,7 +5,7 @@
 #SBATCH --account=amc-general
 #SBATCH --output=output_vireo_demultiplex_%A_%a.log
 #SBATCH --error=error_vireo_demultiplex_%A_%a.log
-#SBATCH --time=18:00:00
+#SBATCH --time=1:00:00
 #SBATCH --partition=amilan
 #SBATCH --qos=normal
 #SBATCH --mem=24G
@@ -22,10 +22,10 @@ set -euo pipefail
 ################################################################################
 
 # Set base directory where all pools are located
-BASE_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_pools"
+BASE_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_pools_BULK_REFS"
 
 # Reference directory where the genotypes of the reference bulks in pools are located
-REF_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_bulk_references"
+REF_DIR="/scratch/alpine/$USER/bcftools_genotyping_output_bulk_references"
 
 # Set output dir
 VIREO_OUT_DIR="/scratch/alpine/$USER/vireo_genetic_demultiplexing_output"
@@ -76,7 +76,7 @@ fi
 
 vireo \
   --cellData="$POOL_DIR" \
-  --donorFile="${REF_DIR}/${POOL_NAME}_donor_ref.vcf.gz" \
+  --donorFile="${REF_DIR}/${POOL_NAME}_donor_ref/${POOL_NAME}_donor_ref.vcf.gz" \
   --nDonor="$N_DONOR" \
   --outDir="$VIREO_OUT_DIR_POOL"
 

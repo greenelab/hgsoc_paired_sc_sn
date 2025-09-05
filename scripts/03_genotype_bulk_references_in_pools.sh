@@ -1,11 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 #SBATCH --array=1-6
 #SBATCH --job-name=genotype_bulk_reference_in_pools
 #SBATCH --account=amc-general
 #SBATCH --output=output_bulk_ref_in_pools_%A_%a.log
 #SBATCH --error=error_bulk_ref_in_pools_%A_%a.log
-#SBATCH --time=06:00:00
+#SBATCH --time=20:00:00
 #SBATCH --partition=amilan
 #SBATCH --qos=normal
 #SBATCH --mem=6G
@@ -17,13 +17,19 @@
 set -euo pipefail
 
 ##########################################################################################################
+# Load bcftools
+##########################################################################################################
+
+module load bcftools
+
+##########################################################################################################
 # Paths
 ##########################################################################################################
 PROJ_DIR="${SLURM_SUBMIT_DIR}"
 ALIGNMENT_DIR="/scratch/alpine/$USER/star_alignment_output/26384R"
-OUTPUT_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_bulk_references"
+OUTPUT_DIR="/scratch/alpine/$USER/bcftools_genotyping_output_bulk_references"
 mkdir -p "$OUTPUT_DIR"
-REF_SNPS="/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.hg38.chr.vcf.gz"
+REF_FASTA="/projects/gakatsu@xsede.org/hgsoc_paired_sc_sn/reference_data/refdata-gex-GRCh38-2024-A/fasta/genome.fa"
 
 ##########################################################################################################
 # Define pools and bulk BAMs
@@ -56,37 +62,33 @@ for bam in $BAMS; do
 
     SAMPLE_VCF="$SAMPLE_OUT/cellSNP.cells.vcf.gz"
 
-    # Check if sample genotyping already done
-    if [ -f "$SAMPLE_VCF" ]; then
+    # Check if sample genotyping already done (VCF and index exist)
+    if [ -f "$SAMPLE_VCF" ] && { [ -f "${SAMPLE_VCF}.csi" ] || [ -f "${SAMPLE_VCF}.tbi" ]; }; then
         echo "Sample $SAMPLE_ID already genotyped, skipping..."
     else
         # Check BAM index
         if [ ! -f "${FULL_BAM}.bai" ]; then
             echo "BAM index not found for $FULL_BAM, indexing now..."
             samtools index "$FULL_BAM"
-    fi
+        fi
     
-    echo "Running cellSNP-lite for $FULL_BAM -> $SAMPLE_OUT"
+    echo "Running bcftools genotyping for $FULL_BAM -> $SAMPLE_OUT"
     
-    cellsnp-lite \
-                -s "$FULL_BAM" \
-                -O "$SAMPLE_OUT" \
-                -R "$REF_SNPS" \
-                -p 10 \
-                --cellTAG None \
-                --UMItag None \
-                --minMAF 0.1 \
-                --minCOUNT 20 \
-                --gzip \
-                --genotype \
-                --sampleIDs "$SAMPLE_ID"
-    fi
+    bcftools mpileup -Ou \
+        -f ${REF_FASTA} \
+        ${FULL_BAM} | \
+    bcftools call -mv -Ov \
+        -o ${SAMPLE_OUT}/bcftools_${SAMPLE_ID}.vcf
     
-    # Ensure the VCF is indexed
-    if [ ! -f "${SAMPLE_VCF}.csi" ] && [ ! -f "${SAMPLE_VCF}.tbi" ]; then
-        echo "Sorting and indexing VCF for $SAMPLE_ID ..."
-        bcftools sort -Oz -o "$SAMPLE_VCF" "$SAMPLE_VCF"
-        bcftools index "$SAMPLE_VCF"
+    # Make sure that sample name is recorded in VCF file    
+    bcftools reheader -s <(echo "${SAMPLE_ID}") \
+        ${SAMPLE_OUT}/bcftools_${SAMPLE_ID}.vcf \
+        -o ${SAMPLE_OUT}/bcftools_${SAMPLE_ID}.renamed.vcf
+    
+    # Compress and index VCF file
+    bgzip -c ${SAMPLE_OUT}/bcftools_${SAMPLE_ID}.renamed.vcf > $SAMPLE_VCF
+    bcftools index $SAMPLE_VCF
+    
     fi
 
     # Add sample VCF to merge list
@@ -105,4 +107,3 @@ else
     bcftools index "$POOL_VCF"
     echo "Finished donor reference VCF for pool $POOL_ID -> $POOL_VCF"
 fi
-

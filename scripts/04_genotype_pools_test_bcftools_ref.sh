@@ -5,10 +5,10 @@
 #SBATCH --account=amc-general
 #SBATCH --output=output_pool_genotyping_%A_%a.log
 #SBATCH --error=error_pool_genotyping_%A_%a.log
-#SBATCH --time=12:00:00
+#SBATCH --time=24:00:00
 #SBATCH --partition=amilan
 #SBATCH --qos=normal
-#SBATCH --mem=5G
+#SBATCH --mem=2G
 #SBATCH --ntasks=10
 #SBATCH --nodes=1
 #SBATCH --mail-user=grace.akatsu@cuanschutz.edu
@@ -21,47 +21,11 @@ set -euo pipefail
 # Define paths
 ##########################################################################################################
 
-PROJ_DIR="${SLURM_SUBMIT_DIR}"
 ALIGNMENT_DIR="/scratch/alpine/$USER/star_alignment_output"
-OUTPUT_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_pools"
+REF_DIR="/scratch/alpine/$USER/bcftools_genotyping_output_bulk_references"
+OUTPUT_DIR="/scratch/alpine/$USER/cellsnp_lite_genotyping_output_pools_BULK_REFS"
 mkdir -p "$OUTPUT_DIR"
 echo "cellSNP-lite output saving to: $OUTPUT_DIR"
-
-##########################################################################################################
-# Ensure SNP reference has "chr" prefixes and is sorted/indexed
-##########################################################################################################
-
-FIXED_REF_SNPS="/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.hg38.chr.vcf.gz"
-
-if [ ! -f "$FIXED_REF_SNPS" ]; then
-    echo "Creating hg38-compatible SNP reference with chr prefixes..."
-
-    TEMP_VCF=$(mktemp --suffix=.vcf.gz)
-    MAP_FILE=$(mktemp)
-
-    # create chr mapping
-    for CHR in $(seq 1 22) X Y MT; do
-        echo -e "$CHR\tchr$CHR"
-    done > "$MAP_FILE"
-
-    # rename chromosomes
-    bcftools annotate --rename-chrs "$MAP_FILE" \
-        -Oz -o "$TEMP_VCF" \
-        "/projects/$USER/hgsoc_paired_sc_sn/reference_data/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz" \
-        || { echo "Error: bcftools annotate failed"; exit 1; }
-
-    # sort VCF
-    bcftools sort -Oz -o "$FIXED_REF_SNPS" "$TEMP_VCF"
-
-    # index
-    tabix -p vcf "$FIXED_REF_SNPS"
-
-    rm "$TEMP_VCF" "$MAP_FILE"
-else
-    echo "Found existing hg38-compatible SNP reference: $FIXED_REF_SNPS"
-fi
-
-REF_SNPS="$FIXED_REF_SNPS"
 
 ##########################################################################################################
 # Gather all BAMs into array
@@ -96,7 +60,6 @@ echo "Pool:             $POOL_ID"
 echo "Output:           $POOL_OUTPUT_DIR"
 echo "BAM File:         $BAM_FILE"
 echo "Barcodes:         $BARCODE_FILE"
-echo "Reference SNPs:   $REF_SNPS"
 
 ##########################################################################################################
 # Ensure BAM index exists before running cellSNP-lite
@@ -111,7 +74,7 @@ else
 fi
 
 ##########################################################################################################
-# Run cellSNP-lite on each pool
+# Run cellSNP-lite on each pool, using previously generated bulk references for reference
 ##########################################################################################################
 
 COMPLETION_FILE="$POOL_OUTPUT_DIR/cellsnp_genotype.vcf.gz"
@@ -125,10 +88,10 @@ cellsnp-lite \
     -s "$BAM_FILE" \
     -O "$POOL_OUTPUT_DIR" \
     -b "$BARCODE_FILE" \
-    -R "$REF_SNPS" \
+    -R "${REF_DIR}/${EXPERIMENT_POOL_ID}_donor_ref/${EXPERIMENT_POOL_ID}_donor_ref.vcf.gz" \
     -p 20 \
-    --minMAF 0.1 \
-    --minCOUNT 20 \
+    --minMAF 0.01 \
+    --minCOUNT 1 \
     --gzip \
     --cellTAG CB \
     --UMItag UB \

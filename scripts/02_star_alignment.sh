@@ -5,10 +5,10 @@
 #SBATCH --account=amc-general
 #SBATCH --output=output_star_alignment_%A_%a.log
 #SBATCH --error=error_star_alignment_%A_%a.log
-#SBATCH --qos=normal
-#SBATCH --time=0-12:00:00
+#SBATCH --qos=long
+#SBATCH --time=0-20:00:00
 #SBATCH --partition=amilan
-#SBATCH --mem=128G
+#SBATCH --mem=200G
 #SBATCH --ntasks=12
 #SBATCH --nodes=1
 #SBATCH --mail-user=grace.akatsu@cuanschutz.edu
@@ -124,7 +124,7 @@ for R1_PATH in "${POOL_FASTQS[@]}"; do
             STAR \
                 --runThreadN 20 \
                 --genomeDir "$REF_DATA_DIR/refdata-gex-GRCh38-2024-A/star" \
-                --readFilesIn "$R1_MERGED" "$R2_MERGED" \
+                --readFilesIn "$R2_MERGED" \
                 --readFilesCommand zcat \
                 --outFileNamePrefix "${POOL_TASK_PREFIX}_1stpass_" \
                 --outSAMtype None
@@ -142,13 +142,13 @@ for R1_PATH in "${POOL_FASTQS[@]}"; do
             STAR \
                 --runThreadN 20 \
                 --genomeDir "$REF_DATA_DIR/refdata-gex-GRCh38-2024-A/star" \
-                --readFilesIn "$R1_MERGED" "$R2_MERGED" \
+                --readFilesIn "$R2_MERGED" "$R1_MERGED" \
                 --readFilesCommand zcat \
                 --sjdbFileChrStartEnd "$SJ_FILTERED" \
                 --outFileNamePrefix "${POOL_TASK_PREFIX}_" \
                 --outSAMtype BAM SortedByCoordinate \
                 --quantMode TranscriptomeSAM GeneCounts \
-                --limitBAMsortRAM 100000000000 \
+                --limitBAMsortRAM 56000000000 \
                 --soloType CB_UMI_Simple \
                 --soloCBstart 1 --soloCBlen 16 \
                 --soloUMIstart 17 --soloUMIlen 12 \
